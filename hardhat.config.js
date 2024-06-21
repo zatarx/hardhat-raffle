@@ -1,12 +1,10 @@
-require("@nomiclabs/hardhat-waffle");
-require("@nomiclabs/hardhat-etherscan");
+require("@nomicfoundation/hardhat-toolbox");
+require("@nomiclabs/hardhat-ethers");
 require("hardhat-deploy");
 require("solidity-coverage");
 require("hardhat-gas-reporter");
 require("hardhat-contract-sizer");
 require("dotenv").config();
-
-
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -24,6 +22,14 @@ module.exports = {
       accounts: [`${process.env.WALLET_PRIVATE_KEY}`],
       blockConfirmations: 6
     }
+  },
+  gasReporter: {
+    enabled: false,
+    outputFile: "gasReporter.txt",
+    noColors: true,
+    currency: "USD",
+    // coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+    token: "MATIC" // to check how much it's going to cost to deploy the contract to polygon
   },
   solidity: "0.8.19",
   namedAccounts: {

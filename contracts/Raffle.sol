@@ -1,10 +1,3 @@
-// Raffle contract
-
-// Enter the lottery (paying some amount)
-// Pick a random winner (verifiably random)
-// Winner to be selected every X minutes -> completely automated
-
-// Chainlink Oracle -> Randomness, Automated Execution
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.8;
 
@@ -15,9 +8,13 @@ import {AutomationCompatible} from "@chainlink/contracts/src/v0.8/automation/Aut
 error Raffle__NotEnoughEthEntered();
 error Raffle__TransferFailed();
 error Raffle__NotOpen();
-error Raffle__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
+error Raffle__UpkeepNotNeeded(
+    uint256 currentBalance,
+    uint256 numPlayers,
+    uint256 raffleState
+);
 error Raffle__NotEnoughWords(uint256 wordsReturned);
-
+error OnlyForwarder();
 
 contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
     enum RaffleState {
@@ -25,6 +22,7 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
         CALCULATING
     } // implicitly uint256, 0 = OPEN, 1 = CAlCULATING
 
+    address private s_forwarderAddress;
     address payable[] private s_players;
     uint256 private s_lastUpkeepExecutionTimestamp;
     uint256 private immutable i_entranceFee;
@@ -32,7 +30,7 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
     uint256 private immutable i_subId;
     uint32 private immutable i_interval;
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
-    uint32 private constant CALLBACK_GAS_LIMIT = 1000000;
+    uint32 private constant CALLBACK_GAS_LIMIT = 1000000 wei;
     uint32 private constant NUM_WORDS = 1;
 
     // Lottery variables
@@ -42,6 +40,10 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
     event RaffleEnter(address indexed player);
     event RequestedRaffleWinner(uint256 indexed requestId);
     event WinnerPicked(address payable recentWinner);
+    event ForwarderAddressUpdated(
+        address indexed currentForwardedAddress,
+        address indexed updatedForwardedAddress
+    );
 
     constructor(
         address vrfCoordinatorV2Plus,
@@ -75,11 +77,13 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
         bool hasBalance = address(this).balance > 0;
 
         upkeepNeeded = (isOpen && timePassed && hasEnoughPlayers && hasBalance);
+        return (upkeepNeeded, "0x0");
     }
-    
-    /// @notice performUpkeep should only be called by dedicated chainlink executors
-    /// @dev For now performUpkeep doesn't have any caller restrictions
-    function performUpkeep(bytes memory /* performData */) public override {
+
+    /// @notice performUpkeep should only be called by a chainlink forwarder
+    function performUpkeep(
+        bytes memory /* performData */
+    ) public override onlyForwarder {
         s_raffleState = RaffleState.CALCULATING;
         uint256 requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
@@ -106,7 +110,9 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
         uint256 winnerIndex = randomWords[0] % s_players.length;
         s_recentWinner = s_players[winnerIndex];
 
-        (bool success, ) = s_recentWinner.call{value: address(this).balance}("");
+        (bool success, ) = s_recentWinner.call{value: address(this).balance}(
+            ""
+        );
         if (!success) {
             revert Raffle__TransferFailed();
         }
@@ -131,6 +137,10 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
         return true;
     }
 
+    function getRaffleState() public view returns (RaffleState) {
+        return s_raffleState;
+    }
+
     function getEntranceFee() public view returns (uint256) {
         return i_entranceFee;
     }
@@ -141,5 +151,22 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
 
     function getRecentWinner() public view returns (address) {
         return s_recentWinner;
+    }
+
+    function getInterval() public view returns (uint256) {
+        return i_interval;
+    }
+
+    function setForwarderAddress(address forwarderAddress) public onlyOwner {
+        require(forwarderAddress != address(0));
+        emit ForwarderAddressUpdated(s_forwarderAddress, forwarderAddress);
+        s_forwarderAddress = forwarderAddress;
+    }
+
+    modifier onlyForwarder() {
+        if (msg.sender != s_forwarderAddress) {
+            revert OnlyForwarder();
+        }
+        _;
     }
 }

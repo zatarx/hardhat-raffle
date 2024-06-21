@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const { ethers } = require("hardhat");
+
 const networkConfig = {
     11155111: {
         name: "sepolia",
