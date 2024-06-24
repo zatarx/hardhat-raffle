@@ -22,16 +22,25 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
         CALCULATING
     } // implicitly uint256, 0 = OPEN, 1 = CAlCULATING
 
+    struct CheckUpkeepStats {
+        bool isOpen;
+        bool hasBalance;
+        bool hasPlayers;
+        bool isTimePassed;
+    }
+
     address private s_forwarderAddress;
     address payable[] private s_players;
     uint256 private s_lastUpkeepExecutionTimestamp;
     uint256 private immutable i_entranceFee;
+    uint256 private immutable i_minExecutionBalance;
     bytes32 private immutable i_gasLane;
     uint256 private immutable i_subId;
     uint32 private immutable i_interval;
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
     uint32 private constant CALLBACK_GAS_LIMIT = 1000000 wei;
     uint32 private constant NUM_WORDS = 1;
+    uint256 private constant MIN_PLAYERS_AMOUNT = 1;
 
     // Lottery variables
     address payable private s_recentWinner;
@@ -48,11 +57,13 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
     constructor(
         address vrfCoordinatorV2Plus,
         uint256 entrenceFee,
+        uint256 minExecutionBalance,
         bytes32 gasLane, // aka keyHash
         uint256 subId,
         uint32 interval
     ) VRFConsumerBaseV2Plus(vrfCoordinatorV2Plus) {
         i_entranceFee = entrenceFee;
+        i_minExecutionBalance = minExecutionBalance;
         i_gasLane = gasLane;
         i_subId = subId;
         i_interval = interval;
@@ -70,13 +81,13 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
         cannotExecute
         returns (bool upkeepNeeded, bytes memory /* performData */)
     {
-        bool isOpen = (s_raffleState == RaffleState.OPEN);
-        bool timePassed = ((block.timestamp - s_lastUpkeepExecutionTimestamp) >
+        bool _isOpen = (s_raffleState == RaffleState.OPEN);
+        bool _timePassed = ((block.timestamp - s_lastUpkeepExecutionTimestamp) >
             i_interval);
-        bool hasEnoughPlayers = (s_players.length > 0);
-        bool hasBalance = address(this).balance > 0;
+        bool _hasPlayers = (s_players.length >= MIN_PLAYERS_AMOUNT);
+        bool _hasBalance = address(this).balance >= i_minExecutionBalance;
 
-        upkeepNeeded = (isOpen && timePassed && hasEnoughPlayers && hasBalance);
+        upkeepNeeded = (_isOpen && _timePassed && _hasPlayers && _hasBalance);
         return (upkeepNeeded, "0x0");
     }
 
@@ -155,6 +166,10 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
 
     function getInterval() public view returns (uint256) {
         return i_interval;
+    }
+
+    function getMinExecutionBalance() public view returns (uint256) {
+        return i_minExecutionBalance;
     }
 
     function setForwarderAddress(address forwarderAddress) public onlyOwner {

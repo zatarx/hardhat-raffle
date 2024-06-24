@@ -30,8 +30,9 @@ module.exports = async function ({getNamedAccounts, deployments}) {
     const entrenceFee = networkConfig[network.config.chainId]["entrenceFee"];
     const gasLane = networkConfig[network.config.chainId]["gasLane"];
     const interval = networkConfig[network.config.chainId]["interval"];
+    const minExecutionBalance = networkConfig[network.config.chainId]["minExecutionBalance"];
 
-    const raffleArgs = [vrfCoordinatorAddress, entrenceFee, gasLane, subscriptionId, interval]; 
+    const raffleArgs = [vrfCoordinatorAddress, entrenceFee, minExecutionBalance, gasLane, subscriptionId, interval]; 
 
     log("Deploying Raffle contract...");
     const raffle = await deploy("Raffle", {
@@ -41,6 +42,13 @@ module.exports = async function ({getNamedAccounts, deployments}) {
         waitConfirmations: network.config.blockConfirmations || 1
     });
     log("Raffle deployed");
+
+    // Allow vrf mock to accept calls from raffle contract
+    if (developmentChains.includes(network.name)) {
+        const vrfCoordinator = await ethers.getContract("VRFCoordinatorV2_5Mock");
+        await vrfCoordinator.addConsumer(subscriptionId, raffle.address);
+        log("Added (subId, address) consumer to VRFCoordinatorV2_5Mock");
+    }
 
     if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
         log("Verifying");
