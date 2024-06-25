@@ -12,16 +12,16 @@ module.exports = async function ({getNamedAccounts, deployments}) {
     let vrfCoordinatorAddress, subscriptionId;
     if (developmentChains.includes(network.name)) {
         // const VRFCoordinatorV2_5Mock = await ethers.getContractFactory("VRFCoordinatorV2_5Mock");
-        const vrfCoordinatorV2_5Mock = await ethers.getContract("VRFCoordinatorV2_5Mock");
+        const vrfCoordinator = await ethers.getContract("VRFCoordinatorV2_5Mock");
         // const vrfCoordinatorV2_5Mock = VRFCoordinatorV2_5Mock.attach(
-        vrfCoordinatorAddress = vrfCoordinatorV2_5Mock.target;
+        vrfCoordinatorAddress = vrfCoordinator.target;
         // get subscriptionId for the mocked vrfCoordinator
-        const transactionResponse = await vrfCoordinatorV2_5Mock.createSubscription();
+        const transactionResponse = await vrfCoordinator.createSubscription();
         const transactionReceipt = await transactionResponse.wait(1);
 
         // SubscriptionCreated is being logged
         subscriptionId = transactionReceipt.logs[0].args.subId;
-        await vrfCoordinatorV2_5Mock.fundSubscription(subscriptionId, VRF_SUB_FUND_AMOUNT)
+        await vrfCoordinator.fundSubscription(subscriptionId, VRF_SUB_FUND_AMOUNT)
     } else {
         vrfCoordinatorAddress = networkConfig[network.config.chainId]["vrfCoordinatorAddress"];
         subscriptionId = networkConfig[network.config.chainId]["automationSubId"];

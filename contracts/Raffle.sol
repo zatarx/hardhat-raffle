@@ -31,7 +31,7 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
 
     address private s_forwarderAddress;
     address payable[] private s_players;
-    uint256 private s_lastUpkeepExecutionTimestamp;
+    uint256 private s_lastUpkeepTimestamp;
     uint256 private immutable i_entranceFee;
     uint256 private immutable i_minExecutionBalance;
     bytes32 private immutable i_gasLane;
@@ -68,7 +68,7 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
         i_subId = subId;
         i_interval = interval;
         s_raffleState = RaffleState.OPEN;
-        s_lastUpkeepExecutionTimestamp = block.timestamp;
+        s_lastUpkeepTimestamp = block.timestamp;
     }
 
     /// @dev Offchain execution (via eth_call) is enforced via cannotExecute.
@@ -82,7 +82,7 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
         returns (bool upkeepNeeded, bytes memory /* performData */)
     {
         bool _isOpen = (s_raffleState == RaffleState.OPEN);
-        bool _timePassed = ((block.timestamp - s_lastUpkeepExecutionTimestamp) >
+        bool _timePassed = ((block.timestamp - s_lastUpkeepTimestamp) >
             i_interval);
         bool _hasPlayers = (s_players.length >= MIN_PLAYERS_AMOUNT);
         bool _hasBalance = address(this).balance >= i_minExecutionBalance;
@@ -129,7 +129,7 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
         }
 
         s_players = new address payable[](0);
-        s_lastUpkeepExecutionTimestamp = block.timestamp;
+        s_lastUpkeepTimestamp = block.timestamp;
         s_raffleState = RaffleState.OPEN;
 
         emit WinnerPicked(s_recentWinner);
@@ -152,12 +152,20 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
         return s_raffleState;
     }
 
+    function getLastUpkeepTimestamp() public view returns (uint256) {
+        return s_lastUpkeepTimestamp;
+    }
+
     function getEntranceFee() public view returns (uint256) {
         return i_entranceFee;
     }
 
     function getPlayer(uint256 playerIndex) public view returns (address) {
         return s_players[playerIndex];
+    }
+
+    function getNumberOfPlayers() public view returns (uint256) {
+        return s_players.length;
     }
 
     function getRecentWinner() public view returns (address) {

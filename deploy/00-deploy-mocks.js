@@ -4,9 +4,9 @@ const { developmentChains } = require("../helper-hardhat-config");
 
 
 // Test values that don't impact the test workflow
-const BASE_FEE = ethers.parseEther("0.25"); // Sepolia set value
+const BASE_FEE = ethers.parseEther("0.0025");
 const GAS_PRICE_ARG = 1e9; // Setting a value at my own discretion
-const WEI_PER_UNIT_LINK = 1e9;
+const WEI_PER_UNIT_LINK = ethers.parseEther("0.0042");
 
 module.exports = async function ({getNamedAccounts, deployments}) {
     const {deploy, log} = deployments;
@@ -19,7 +19,7 @@ module.exports = async function ({getNamedAccounts, deployments}) {
             contract: "VRFCoordinatorV2_5Mock",
             from: deployer,
             log: true,
-            args: [BASE_FEE, GAS_PRICE_ARG, WEI_PER_UNIT_LINK]
+            args: [BASE_FEE.toString(), GAS_PRICE_ARG.toString(), WEI_PER_UNIT_LINK.toString()]
         });
         log("Mocks deployed");
         log("-----------------------");
