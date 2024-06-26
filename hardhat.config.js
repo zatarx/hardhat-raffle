@@ -20,7 +20,7 @@ module.exports = {
       url: process.env.SEPOLIA_RPC_URL,
       // url: "https://eth-sepolia.api.onfinality.io/public",
       accounts: [`${process.env.WALLET_PRIVATE_KEY}`],
-      blockConfirmations: 6
+      blockConfirmations: 3
     }
   },
   gasReporter: {
@@ -42,5 +42,10 @@ module.exports = {
   },
   mocha: {
     timeout: 60000, // ms; 1 minute max
+  },
+  etherscan: {
+    apiKey: {
+      sepolia: process.env.ETHERSCAN_API_KEY
+    }
   }
 };

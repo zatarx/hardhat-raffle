@@ -24,7 +24,7 @@ module.exports = async function ({getNamedAccounts, deployments}) {
         await vrfCoordinator.fundSubscription(subscriptionId, VRF_SUB_FUND_AMOUNT)
     } else {
         vrfCoordinatorAddress = networkConfig[network.config.chainId]["vrfCoordinatorAddress"];
-        subscriptionId = networkConfig[network.config.chainId]["automationSubId"];
+        subscriptionId = networkConfig[network.config.chainId]["vrfSubId"];
     }
 
     const entrenceFee = networkConfig[network.config.chainId]["entrenceFee"];
