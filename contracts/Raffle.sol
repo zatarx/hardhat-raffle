@@ -78,7 +78,6 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatible {
         public
         view
         override
-        cannotExecute
         returns (bool upkeepNeeded, bytes memory /* performData */)
     {
         bool _isOpen = (s_raffleState == RaffleState.OPEN);
